@@ -1,0 +1,1271 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Etusivu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: aamun tilannekuva. Yläreunassa kello ja tervehdys, alla 12-sarakkeinen ruudukko:
+   sää + pysäkki, liikenne + uutiset, linkit koko leveydeltä. */
+:root {
+  --bg: #e9eef1;
+  --surface: #f8fafb;
+  --surface-2: #eef2f4;
+  --ink: #14232c;
+  --ink-2: #4a5d68;
+  --line: #d3dce1;
+  --accent: #0a6c8c;
+  --accent-ink: #ffffff;
+  --warn: #b25a00;
+  --warn-bg: #fbeedb;
+  --bad: #b3261e;
+  --good: #1d7a4a;
+  --font-body: "Familjen Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1a21;
+    --surface: #15252e;
+    --surface-2: #1b2f3a;
+    --ink: #e6eef2;
+    --ink-2: #9db0ba;
+    --line: #27404d;
+    --accent: #4cc3e6;
+    --accent-ink: #062431;
+    --warn: #f0a44a;
+    --warn-bg: #3a2a14;
+    --bad: #ff8a80;
+    --good: #5fd397;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1a21; --surface: #15252e; --surface-2: #1b2f3a; --ink: #e6eef2; --ink-2: #9db0ba;
+  --line: #27404d; --accent: #4cc3e6; --accent-ink: #062431; --warn: #f0a44a; --warn-bg: #3a2a14;
+  --bad: #ff8a80; --good: #5fd397; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.45 var(--font-body);
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 20px; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Yläpalkki */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+.clock { font: 700 clamp(3rem, 8vw, 5.5rem)/0.95 var(--font-mono); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+.greet { color: var(--ink-2); font-size: 1.05rem; margin-top: 6px; text-wrap: balance; }
+.greet b { color: var(--ink); font-weight: 600; }
+.nameday { margin-top: 4px; font-size: 1.05rem; color: var(--ink-2); }
+.nameday b { color: var(--ink); font-weight: 600; }
+.nameday small { display: block; font-size: 0.72rem; margin-top: 2px; opacity: 0.85; }
+.nameday a { color: var(--accent); }
+.caldays { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 6px; font-size: 1.02rem; font-weight: 500; }
+.caldays:empty { display: none; }
+.cal-item { display: inline-flex; align-items: center; gap: 8px; }
+.cal-tag { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.cal-tag.hol { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.cal-tag.flag { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.foot { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; padding-top: 4px; }
+.btn { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+/* Ruudukko */
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.panel { grid-column: span var(--span, 12); }
+@media (max-width: 900px) { .panel { grid-column: span 12; } }
+.panel.is-hidden { display: none; }
+.panel.big { grid-column: 1 / -1; }
+.panel.big .list { max-height: 78vh; }
+.panel.collapsed > :not(.ph):not(.edit-bar) { display: none; }
+.panel.collapsed { gap: 0; align-self: start; }
+.ph-ctl { display: inline-flex; gap: 4px; margin-left: 4px; }
+.ph-ctl button { width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); background: transparent; border-radius: 8px; color: var(--ink-2); font: 600 0.95rem/1 var(--font-mono); display: grid; place-items: center; }
+.ph-ctl button:hover { border-color: var(--accent); color: var(--accent); }
+.edit-bar, .edit-hint { display: none; }
+.editing .edit-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-bottom: 12px; border-bottom: 1px dashed var(--line); }
+.editing .edit-bar .btn { padding: 4px 10px; font-size: 0.85rem; }
+.edit-bar .grip { font-weight: 600; font-size: 0.85rem; color: var(--ink-2); margin-right: auto; cursor: grab; }
+.editing .panel { outline: 2px dashed var(--line); outline-offset: 3px; cursor: grab; }
+.editing .panel.is-hidden { display: flex; opacity: 0.45; }
+.panel.dragging { opacity: 0.35; }
+.panel.drop-target { outline-color: var(--accent); }
+.editing .edit-hint { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 14px; color: var(--ink-2); font-size: 0.92rem; }
+.ph { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ph h2 { margin: 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.ph .meta { font-size: 0.8rem; color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
+.ph .meta button { background: none; border: 0; padding: 2px 6px; color: var(--accent); font-weight: 600; font-size: 0.8rem; }
+.state { color: var(--ink-2); padding: 12px 0; }
+.state.err { color: var(--bad); }
+.skeleton { height: 14px; border-radius: 6px; background: var(--surface-2); margin: 10px 0; }
+
+/* Sää */
+.wx-now { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; }
+.wx-icon { width: 84px; height: 84px; color: var(--accent); flex: none; }
+.wx-temp { font: 700 clamp(3.2rem, 7vw, 4.6rem)/1 var(--font-mono); letter-spacing: -0.05em; }
+.wx-temp small { font-size: 0.4em; letter-spacing: 0; }
+.wx-desc { font-size: 1.15rem; font-weight: 600; }
+.wx-sub { color: var(--ink-2); font-size: 0.92rem; }
+.wx-facts { display: grid; grid-template-columns: 112px 66px 112px; gap: 8px 14px; margin-left: auto; align-items: start; }
+@media (max-width: 640px) { .wx-facts { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); margin-left: 0; width: 100%; } }
+.fact { min-width: 84px; }
+.fact span { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-2); }
+.fact b { font: 600 1.05rem var(--font-mono); }
+.hours { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); gap: 4px; overflow-x: auto; padding-bottom: 4px; border-top: 1px solid var(--line); padding-top: 14px; }
+.hour { text-align: center; display: grid; gap: 4px; justify-items: center; }
+.hour .t { font: 500 0.78rem var(--font-mono); color: var(--ink-2); }
+.hour svg { width: 28px; height: 28px; color: var(--ink-2); }
+.hour .v { font: 700 0.95rem var(--font-mono); }
+.hour .p { font-size: 0.72rem; line-height: 1.4; color: var(--accent); min-height: 1.4em; }
+.days { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; align-items: stretch; }
+.day { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.day .d { font-weight: 600; text-transform: capitalize; }
+.day svg { width: 26px; height: 26px; color: var(--accent); }
+.day .r { font: 600 0.88rem var(--font-mono); }
+.day .r i { color: var(--ink-2); font-style: normal; font-weight: 500; }
+.day .p { font-size: 0.75rem; line-height: 1.3; color: var(--ink-2); min-height: 2.6em; }
+
+/* Pysäkki */
+.stop-name { font-size: 1.3rem; font-weight: 700; }
+.stop-name small { font: 500 0.85rem var(--font-mono); color: var(--ink-2); margin-left: 8px; }
+.deps { list-style: none; margin: 0; padding: 0; display: grid; }
+.dep { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.dep:first-child { border-top: 0; }
+.au-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+.au-kp { font: 700 3rem/1 var(--font-mono); letter-spacing: -0.04em; }
+.au-kp small { font-size: 0.4em; letter-spacing: 0; color: var(--ink-2); }
+.au-verdict { display: grid; gap: 4px; min-width: 0; flex: 1 1 200px; }
+.au-chip { justify-self: start; font-weight: 700; padding: 4px 12px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.au-chip.good { background: var(--good); color: var(--bg); border-color: transparent; }
+.au-chip.ok { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.au-chip.low { background: var(--warn-bg); color: var(--warn); border-color: transparent; }
+.au-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 16px; }
+.au-chart { width: 100%; height: auto; display: block; }
+.au-grid { stroke: var(--line); stroke-width: 1; }
+.au-need { stroke: var(--warn); stroke-width: 1.4; stroke-dasharray: 5 4; }
+.au-txt { fill: var(--ink-2); font: 500 9px var(--font-mono); }
+.au-bar { fill: var(--ink-2); opacity: 0.55; }
+.au-bar.hit { fill: var(--accent); opacity: 1; }
+.au-bar.pred { opacity: 0.4; }
+.au-bar.hit.pred { opacity: 0.7; }
+.au-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.78rem; color: var(--ink-2); }
+.au-legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--ink-2); opacity: 0.55; margin-right: 6px; }
+.au-legend .sw.hit { background: var(--accent); opacity: 1; }
+.au-legend .sw.pred { opacity: 0.3; }
+.map-links { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--line); font-weight: 500; }
+.map-links a { color: var(--accent); }
+.map-links .hint { flex-basis: 100%; font-size: 0.8rem; font-weight: 400; color: var(--ink-2); }
+a.line { text-decoration: none; display: block; }
+a.line:hover { filter: brightness(1.12); }
+.line { background: var(--accent); color: var(--accent-ink); font: 700 1rem var(--font-mono); border-radius: 8px; padding: 4px 0; text-align: center; }
+.dest { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.when { font: 700 1.05rem var(--font-mono); text-align: right; }
+.when .live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--good); margin-right: 6px; }
+.when .sched { color: var(--ink-2); font-weight: 500; margin-right: 4px; }
+.setup { background: var(--surface-2); border-radius: 10px; padding: 14px; color: var(--ink-2); }
+.setup b { color: var(--ink); }
+
+/* Liikenne */
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.list { list-style: none; margin: 0; padding: 0; display: grid; max-height: 460px; overflow-y: auto; }
+.item { padding: 12px 0; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+.item:first-child { border-top: 0; }
+.item .ti { font-weight: 600; text-wrap: pretty; }
+.item .de { color: var(--ink-2); font-size: 0.9rem; }
+.tag { display: inline-block; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; border-radius: 6px; margin-right: 8px; background: var(--warn-bg); color: var(--warn); vertical-align: 1px; }
+.tag.work { background: var(--surface-2); color: var(--ink-2); }
+.item .when-small { font-size: 0.8rem; color: var(--ink-2); }
+
+/* Uutiset */
+.news a { text-decoration: none; display: block; }
+.news a:hover .ti { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Linkit */
+.links { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px 28px; }
+.lg h3 { margin: 0 0 8px; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-2); }
+.lg ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.lg a { display: block; padding: 7px 10px; margin-inline: -10px; border-radius: 8px; text-decoration: none; font-weight: 500; }
+.lg a:hover { background: var(--surface-2); color: var(--accent); }
+
+/* Asetukset */
+dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); padding: 0; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+dialog::backdrop { background: rgba(5, 15, 20, 0.55); }
+.dlg { padding: 22px; display: grid; gap: 14px; }
+.dlg h2 { margin: 0; font-size: 1.3rem; }
+.dlg label { display: grid; gap: 4px; font-weight: 600; font-size: 0.9rem; }
+.dlg label small { font-weight: 400; color: var(--ink-2); }
+.dlg input, .dlg textarea { font: 400 0.95rem var(--font-body); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; width: 100%; }
+.dlg textarea { font-family: var(--font-mono); font-size: 0.82rem; min-height: 180px; }
+.row2 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+.inline { display: flex; gap: 8px; }
+.results { display: grid; gap: 4px; }
+.results button { text-align: left; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.results button:hover { border-color: var(--accent); }
+.dlg-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.hint { color: var(--ink-2); font-size: 0.85rem; }
+@media (prefers-reduced-motion: no-preference) {
+  body.intro .panel { animation: rise .35s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+</style>
+</head>
+<body class="intro">
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="clock" id="clock" aria-label="Kellonaika">--:--</div>
+      <div class="greet" id="greet"></div>
+      <div class="nameday" id="nameday"></div>
+      <div class="caldays" id="caldays"></div>
+    </div>
+  </header>
+
+  <div class="edit-hint" id="edit-hint"><span>Vedä laatikoita uuteen paikkaan tai käytä painikkeita. Muutokset tallentuvat automaattisesti.</span><button class="btn" type="button" id="btn-layout-reset">Palauta oletusasettelu</button></div>
+
+  <main class="grid">
+    <section class="panel" id="p-weather" aria-labelledby="h-weather">
+      <div class="ph"><h2 id="h-weather">Sää · <span id="wx-place"></span></h2><div class="meta"><span id="wx-upd"></span><button type="button" data-refresh="weather">Päivitä</button></div></div>
+      <div class="chips" id="wx-chips" role="group" aria-label="Valitse säälähde"></div>
+      <div id="wx-body"><div class="skeleton"></div><div class="skeleton" style="width:60%"></div></div>
+    </section>
+
+    <section class="panel" id="p-stop" aria-labelledby="h-stop">
+      <div class="ph"><h2 id="h-stop">Pysäkki</h2><div class="meta"><span id="stop-upd"></span><button type="button" data-refresh="stop">Päivitä</button></div></div>
+      <div id="stop-body"><div class="skeleton"></div><div class="skeleton" style="width:60%"></div></div>
+    </section>
+
+    <section class="panel" id="p-aurora" aria-labelledby="h-aurora">
+      <div class="ph"><h2 id="h-aurora">Revontulet</h2><div class="meta"><span id="au-upd"></span><button type="button" data-refresh="aurora">Päivitä</button></div></div>
+      <div id="au-body"><div class="skeleton"></div><div class="skeleton" style="width:60%"></div></div>
+    </section>
+
+    <section class="panel" id="p-traffic" aria-labelledby="h-traffic">
+      <div class="ph"><h2 id="h-traffic">Liikennetiedotteet</h2><div class="meta"><span id="tr-upd"></span><button type="button" data-refresh="traffic">Päivitä</button></div></div>
+      <div class="chips" id="tr-chips" role="group" aria-label="Rajaa tiedotteita">
+        <button class="chip" type="button" data-f="all" aria-pressed="true">Kaikki</button>
+        <button class="chip" type="button" data-f="incident" aria-pressed="false">Häiriöt</button>
+        <button class="chip" type="button" data-f="work" aria-pressed="false">Tietyöt</button>
+      </div>
+      <div id="tr-body"><div class="skeleton"></div><div class="skeleton" style="width:60%"></div></div>
+    </section>
+
+    <section class="panel news" id="p-news" aria-labelledby="h-news">
+      <div class="ph"><h2 id="h-news">Uutiset</h2><div class="meta"><span id="nw-upd"></span><button type="button" data-refresh="news">Päivitä</button></div></div>
+      <div class="chips" id="nw-chips" role="group" aria-label="Valitse uutislähde"></div>
+      <div id="nw-body"><div class="skeleton"></div><div class="skeleton" style="width:60%"></div></div>
+    </section>
+
+    <section class="panel" id="p-links" aria-labelledby="h-links">
+      <div class="ph"><h2 id="h-links">Linkit</h2></div>
+      <div class="links" id="links"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <button class="btn" id="btn-edit" type="button" aria-pressed="false">Muokkaa asettelua</button>
+    <button class="btn" id="btn-refresh" type="button">Päivitä kaikki</button>
+    <button class="btn primary" id="btn-settings" type="button">Asetukset</button>
+  </footer>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" class="dlg" id="settings-form">
+    <h2>Asetukset</h2>
+    <p class="hint">Asetukset tallentuvat vain tämän selaimen muistiin.</p>
+
+    <label>Paikkakunnan nimi (sää)
+      <div class="inline"><input id="s-place" type="text" autocomplete="off"><button class="btn" type="button" id="s-geo">Hae koordinaatit</button></div>
+      <small id="s-geo-msg"></small>
+    </label>
+    <div class="row2">
+      <label>Leveysaste<input id="s-lat" type="text" inputmode="decimal"></label>
+      <label>Pituusaste<input id="s-lon" type="text" inputmode="decimal"></label>
+      <label>Digitransit-API-avain<input id="s-key" type="password" autocomplete="off"></label>
+    </div>
+    <p class="hint">Pysäkkiaikataulu tarvitsee ilmaisen avaimen: <a href="https://digitransit.fi/en/developers/" target="_blank" rel="noopener">digitransit.fi/en/developers</a>. Nysse kuuluu Waltti-verkkoon.</p>
+
+    <label>Pysäkin haku
+      <div class="inline"><input id="s-stopq" type="text" placeholder="esim. Keskustori" autocomplete="off"><button class="btn" type="button" id="s-stopsearch">Hae</button></div>
+      <small id="s-stop-msg"></small>
+    </label>
+    <div class="results" id="s-stopresults"></div>
+    <label>Valittu pysäkki (tunnus)<input id="s-stopid" type="text" placeholder="tampere:0001" autocomplete="off"></label>
+
+    <label>Liikennetiedotteiden suodatus<small>Pilkulla erotetut paikannimet. Tyhjä näyttää koko maan.</small>
+      <input id="s-kw" type="text" autocomplete="off">
+    </label>
+
+    <label>Nimipäiväavain (Almanakkatoimisto)<small>Pyydä avain osoitteesta almanakka.helsinki.fi (ilmainen alle 100 käyttäjälle). Avain tallentuu vain tähän selaimeen.</small>
+      <input id="s-ndkey" type="password" autocomplete="off">
+    </label>
+
+    <label>Linkit<small>Yksi per rivi: Ryhmä | Nimi | Osoite</small>
+      <textarea id="s-links" spellcheck="false"></textarea>
+    </label>
+
+    <div class="dlg-actions">
+      <button class="btn" type="button" id="s-reset">Palauta oletukset</button>
+      <button class="btn" type="button" id="s-cancel">Peruuta</button>
+      <button class="btn primary" type="submit" value="save" id="s-save">Tallenna</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Oletukset ja asetukset ---------- */
+  var DEFAULT_LINKS = [
+    "Liikenne ja sää | Nysse | https://www.nysse.fi",
+    "Liikenne ja sää | Liikennetilanne | https://liikennetilanne.fintraffic.fi",
+    "Liikenne ja sää | Ilmatieteen laitos | https://www.ilmatieteenlaitos.fi",
+    "Liikenne ja sää | Tampereen kaupunki | https://www.tampere.fi",
+    "Asiointi | Suomi.fi | https://www.suomi.fi",
+    "Asiointi | OmaKanta | https://www.kanta.fi",
+    "Asiointi | Kela | https://www.kela.fi",
+    "Asiointi | OmaVero | https://www.vero.fi",
+    "Asiointi | Posti | https://www.posti.fi",
+    "Uutiset ja media | Yle Uutiset | https://yle.fi/uutiset",
+    "Uutiset ja media | Yle Areena | https://areena.yle.fi",
+    "Uutiset ja media | Aamulehti | https://www.aamulehti.fi",
+    "Uutiset ja media | Helsingin Sanomat | https://www.hs.fi",
+    "Työkalut | Gmail | https://mail.google.com",
+    "Työkalut | Kalenteri | https://calendar.google.com",
+    "Työkalut | Drive | https://drive.google.com",
+    "Kehitys | GitHub | https://github.com",
+    "Kehitys | Firebase Console | https://console.firebase.google.com",
+    "Kehitys | MDN | https://developer.mozilla.org/fi/"
+  ];
+  var DEFAULTS = {
+    place: "Tampere", lat: 61.4978, lon: 23.7610, wxSource: "fmi",
+    key: "", stopId: "", ndKey: "",
+    keywords: "Tampere, Pirkkala, Lempäälä, Nokia, Ylöjärvi, Kangasala, Orivesi",
+    links: DEFAULT_LINKS.join("\n")
+  };
+  var PANEL_IDS = ["weather", "stop", "aurora", "traffic", "news", "links"];
+  var PANEL_NAMES = { weather: "Sää", stop: "Pysäkki", aurora: "Revontulet", traffic: "Liikenne", news: "Uutiset", links: "Linkit" };
+  var SPANS = [4, 5, 6, 7, 8, 12];
+  var DEFAULT_LAYOUT = [{ id: "weather", span: 7 }, { id: "stop", span: 5 }, { id: "aurora", span: 6 }, { id: "traffic", span: 6 }, { id: "news", span: 6 }, { id: "links", span: 6 }];
+  function normLayout(l) {
+    var out = [], seen = {};
+    (Array.isArray(l) ? l : []).forEach(function (x) {
+      if (x && PANEL_IDS.indexOf(x.id) >= 0 && !seen[x.id]) {
+        seen[x.id] = 1;
+        out.push({ id: x.id, span: SPANS.indexOf(+x.span) >= 0 ? +x.span : 12, hidden: !!x.hidden, collapsed: !!x.collapsed, big: !!x.big });
+      }
+    });
+    DEFAULT_LAYOUT.forEach(function (d) { if (!seen[d.id]) out.push({ id: d.id, span: d.span, hidden: false, collapsed: false, big: false }); });
+    return out;
+  }
+  var STORE = "etusivu.v1";
+  var NEWS_SOURCES = [
+    { id: "pa", name: "Pääuutiset", url: "https://yle.fi/rss/uutiset/paauutiset" },
+    { id: "tu", name: "Tuoreimmat", url: "https://feeds.yle.fi/uutiset/v1/recent.rss?publisherIds=YLE_UUTISET" },
+    { id: "ko", name: "Kotimaa", url: "https://yle.fi/rss/t/18-34837/fi" },
+    { id: "pir", name: "Pirkanmaa", url: "https://yle.fi/rss/t/18-146831/fi" },
+    { id: "ul", name: "Ulkomaat", url: "https://yle.fi/rss/t/18-34953/fi" }
+  ];
+  var REITTIOPAS = "https://reittiopas.tampere.fi";
+  var DIGITRANSIT = "https://api.digitransit.fi/routing/v2/waltti/gtfs/v1";
+
+  function load() {
+    var s = {};
+    try { s = JSON.parse(localStorage.getItem(STORE) || "{}") || {}; } catch (e) { s = {}; }
+    var out = {};
+    Object.keys(DEFAULTS).forEach(function (k) { out[k] = s[k] !== undefined ? s[k] : DEFAULTS[k]; });
+    out.layout = normLayout(s.layout);
+    out.newsTab = s.newsTab || "pa"; if (!NEWS_SOURCES.some(function (x) { return x.id === out.newsTab; })) out.newsTab = "pa";
+    return out;
+  }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(cfg)); } catch (e) {} }
+  var cfg = load();
+
+  /* ---------- Apuja ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  var pad = function (n) { return n < 10 ? "0" + n : "" + n; };
+  function hm(d) { return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function getJSON(url, opts) {
+    var ctl = new AbortController();
+    var t = setTimeout(function () { ctl.abort(); }, 12000);
+    opts = opts || {}; opts.signal = ctl.signal;
+    return fetch(url, opts).then(function (r) {
+      clearTimeout(t);
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r;
+    }, function (e) { clearTimeout(t); throw e; });
+  }
+  function setBody(id, html) { $(id).innerHTML = html; }
+  function stamp(id) { $(id).textContent = "päivitetty " + hm(new Date()); }
+  function relTime(d) {
+    var m = Math.round((Date.now() - d.getTime()) / 60000);
+    if (m < 1) return "juuri nyt";
+    if (m < 60) return m + " min sitten";
+    var h = Math.round(m / 60);
+    if (h < 24) return h + " h sitten";
+    return d.getDate() + "." + (d.getMonth() + 1) + ". " + hm(d);
+  }
+
+  /* ---------- Kello ja tervehdys ---------- */
+  function isoWeek(d) {
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var day = t.getUTCDay() || 7;
+    t.setUTCDate(t.getUTCDate() + 4 - day);
+    var y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    return Math.ceil(((t - y0) / 86400000 + 1) / 7);
+  }
+  function tick() {
+    var d = new Date();
+    if (ndDate && lp(d).date !== ndDate) loadNameday();
+    $("clock").textContent = hm(d);
+    var h = d.getHours();
+    var g = h < 5 ? "Hyvää yötä" : h < 10 ? "Hyvää huomenta" : h < 17 ? "Hyvää päivää" : h < 22 ? "Hyvää iltaa" : "Hyvää yötä";
+    var date = new Intl.DateTimeFormat("fi-FI", { weekday: "long", day: "numeric", month: "long" }).format(d);
+    $("greet").innerHTML = esc(g) + ". Tänään on <b>" + esc(date) + "</b>, viikko " + isoWeek(d) + ".";
+  }
+
+  /* ---------- Sää ---------- */
+  var WX = {
+    0: ["Selkeää", "clear"], 1: ["Enimmäkseen selkeää", "clear"], 2: ["Puolipilvistä", "partly"], 3: ["Pilvistä", "cloud"],
+    45: ["Sumua", "fog"], 48: ["Huurtavaa sumua", "fog"],
+    51: ["Heikkoa tihkua", "rain"], 53: ["Tihkusadetta", "rain"], 55: ["Voimakasta tihkua", "rain"],
+    56: ["Jäätävää tihkua", "rain"], 57: ["Jäätävää tihkua", "rain"],
+    61: ["Heikkoa vesisadetta", "rain"], 63: ["Vesisadetta", "rain"], 65: ["Rankkaa vesisadetta", "rain"],
+    66: ["Jäätävää vesisadetta", "rain"], 67: ["Jäätävää vesisadetta", "rain"],
+    71: ["Heikkoa lumisadetta", "snow"], 73: ["Lumisadetta", "snow"], 75: ["Runsasta lumisadetta", "snow"], 77: ["Lumihiutaleita", "snow"],
+    80: ["Heikkoja sadekuuroja", "rain"], 81: ["Sadekuuroja", "rain"], 82: ["Voimakkaita sadekuuroja", "rain"],
+    85: ["Lumikuuroja", "snow"], 86: ["Voimakkaita lumikuuroja", "snow"],
+    95: ["Ukkosta", "storm"], 96: ["Ukkosta ja rakeita", "storm"], 99: ["Ukkosta ja rakeita", "storm"]
+  };
+  function wxInfo(code) { return WX[code] || ["Tuntematon", "cloud"]; }
+  var CLOUD = '<path d="M15 33h19a7.5 7.5 0 0 0 .8-14.96A10.5 10.5 0 0 0 14.4 20 6.6 6.6 0 0 0 15 33z"/>';
+  function icon(kind, day) {
+    var inner;
+    var sun = '<circle cx="24" cy="24" r="8"/><path d="M24 6v5M24 37v5M6 24h5M37 24h5M11.3 11.3l3.5 3.5M33.2 33.2l3.5 3.5M11.3 36.7l3.5-3.5M33.2 14.8l3.5-3.5"/>';
+    var moon = '<path d="M30 9a15 15 0 1 0 9 26A12 12 0 0 1 30 9z"/>';
+    if (kind === "clear") inner = day === false ? moon : sun;
+    else if (kind === "partly") inner = '<g transform="translate(-4 -6) scale(.75)">' + (day === false ? moon : sun) + '</g><g transform="translate(4 4)">' + CLOUD + '</g>';
+    else if (kind === "cloud") inner = '<g transform="translate(0 3)">' + CLOUD + '</g>';
+    else if (kind === "fog") inner = '<g transform="translate(0 -4)">' + CLOUD + '</g><path d="M12 38h24M16 43h16"/>';
+    else if (kind === "rain") inner = '<g transform="translate(0 -5)">' + CLOUD + '</g><path d="M17 38l-2 5M25 38l-2 5M33 38l-2 5"/>';
+    else if (kind === "snow") inner = '<g transform="translate(0 -5)">' + CLOUD + '</g><path d="M17 39v4M15 41h4M25 39v4M23 41h4M33 39v4M31 41h4"/>';
+    else inner = '<g transform="translate(0 -5)">' + CLOUD + '</g><path d="M26 33l-5 7h6l-4 6"/>';
+    return '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+  }
+  function windArrow(deg) {
+    return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(' + Math.round(deg + 180) + 'deg);vertical-align:-2px" aria-hidden="true"><path d="M12 4v16M6 14l6 6 6-6"/></svg>';
+  }
+  function dirName(deg) {
+    return ["pohjoinen", "koillinen", "itä", "kaakko", "etelä", "lounas", "länsi", "luode"][Math.round(deg / 45) % 8];
+  }
+  var tFmt = function (n) { return (Math.round(n) < 0 ? "−" : "") + Math.abs(Math.round(n)); };
+
+  var WX_SOURCES = { fmi: "Ilmatieteen laitos", yr: "Yr", om: "Open-Meteo" };
+  var localFmt = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Helsinki", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  function lp(d) {
+    var o = {};
+    localFmt.formatToParts(d).forEach(function (p) { o[p.type] = p.value; });
+    return { date: o.year + "-" + o.month + "-" + o.day, hm: o.hour + ":" + o.minute };
+  }
+  /* Auringonnousu ja -lasku (NOAA:n yksinkertaistettu laskenta), käytetään yr- ja FMI-lähteille. */
+  function sunTimes(lat, lon, t) {
+    var rad = Math.PI / 180;
+    var y = t.getUTCFullYear(), mo = t.getUTCMonth(), dd = t.getUTCDate();
+    var doy = Math.floor((Date.UTC(y, mo, dd) - Date.UTC(y, 0, 0)) / 864e5);
+    var g = 2 * Math.PI / 365 * (doy - 1);
+    var eq = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+    var dc = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+    var c = Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(dc)) - Math.tan(lat * rad) * Math.tan(dc);
+    if (c > 1 || c < -1) return null;
+    var ha = Math.acos(c) / rad, base = Date.UTC(y, mo, dd);
+    return { rise: new Date(base + (720 - 4 * (lon + ha) - eq) * 60000), set: new Date(base + (720 - 4 * (lon - ha) - eq) * 60000) };
+  }
+  function isDay(t) {
+    var s = sunTimes(+cfg.lat, +cfg.lon, t);
+    return s ? (t >= s.rise && t <= s.set) : true;
+  }
+  function chill(t, ms) {
+    var v = ms * 3.6;
+    if (t > 10 || v <= 4.8) return t;
+    var p = Math.pow(v, 0.16);
+    return 13.12 + 0.6215 * t - 11.37 * p + 0.3965 * t * p;
+  }
+  /* Yhteinen malli: pisteet {t:Date,temp,kind,label,hum,wind,gust,dir,pop} -> {cur,hours,days,sun} */
+  function buildModel(pts) {
+    var now = Date.now();
+    pts = pts.filter(function (p) { return p.temp != null && isFinite(p.temp) && !isNaN(p.t); }).sort(function (a, b) { return a.t - b.t; });
+    if (!pts.length) throw new Error("ennuste on tyhjä");
+    var i0 = pts.findIndex(function (p) { return p.t.getTime() >= now - 3540000; });
+    if (i0 < 0) i0 = pts.length - 1;
+    var c = pts[i0], sun = sunTimes(+cfg.lat, +cfg.lon, new Date());
+    var m = {
+      cur: { temp: c.temp, feels: c.wind != null ? chill(c.temp, c.wind) : c.temp, hum: c.hum, kind: c.kind, label: c.label, wind: c.wind, gust: c.gust, dir: c.dir, day: isDay(c.t) },
+      hours: [], days: [], sun: sun ? { rise: lp(sun.rise).hm, set: lp(sun.set).hm } : null
+    };
+    pts.slice(i0, i0 + 12).forEach(function (p) { m.hours.push({ t: lp(p.t).hm, temp: p.temp, kind: p.kind, day: isDay(p.t), pop: p.pop }); });
+    var today = lp(new Date()).date, by = {}, order = [];
+    pts.forEach(function (p) {
+      var d = lp(p.t).date; if (d <= today) return;
+      if (!by[d]) { by[d] = []; order.push(d); }
+      by[d].push(p);
+    });
+    order.filter(function (d) { return by[d].length >= 3; }).slice(0, 5).forEach(function (d) {
+      var a = by[d], mx = -99, mn = 99, pop = null;
+      a.forEach(function (p) { mx = Math.max(mx, p.temp); mn = Math.min(mn, p.temp); if (p.pop != null) pop = Math.max(pop == null ? 0 : pop, p.pop); });
+      var dist = function (p) { return Math.abs(+lp(p.t).hm.slice(0, 2) - 12); };
+      var rep = a.reduce(function (b, p) { return dist(p) < dist(b) ? p : b; }, a[0]);
+      m.days.push({ date: d, kind: rep.kind, label: rep.label, max: mx, min: mn, pop: pop });
+    });
+    return m;
+  }
+
+  /* --- Open-Meteo --- */
+  function fetchOM() {
+    var u = "https://api.open-meteo.com/v1/forecast?latitude=" + encodeURIComponent(cfg.lat) + "&longitude=" + encodeURIComponent(cfg.lon) +
+      "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,is_day" +
+      "&hourly=temperature_2m,precipitation_probability,weather_code,is_day" +
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset" +
+      "&wind_speed_unit=ms&timezone=Europe%2FHelsinki&forecast_days=6";
+    return getJSON(u).then(function (r) { return r.json(); }).then(function (w) {
+      var c = w.current, info = wxInfo(c.weather_code);
+      var m = {
+        cur: { temp: c.temperature_2m, feels: c.apparent_temperature, hum: c.relative_humidity_2m, kind: info[1], label: info[0], wind: c.wind_speed_10m, gust: c.wind_gusts_10m, dir: c.wind_direction_10m, day: c.is_day === 1 },
+        hours: [], days: [], sun: { rise: w.daily.sunrise[0].slice(11), set: w.daily.sunset[0].slice(11) }
+      };
+      var i0 = Math.max(0, w.hourly.time.findIndex(function (t) { return t >= c.time.slice(0, 13); }));
+      for (var i = i0; i < Math.min(i0 + 12, w.hourly.time.length); i++) {
+        m.hours.push({ t: w.hourly.time[i].slice(11, 16), temp: w.hourly.temperature_2m[i], kind: wxInfo(w.hourly.weather_code[i])[1], day: w.hourly.is_day[i] === 1, pop: w.hourly.precipitation_probability[i] });
+      }
+      for (var j = 1; j < w.daily.time.length; j++) {
+        var di = wxInfo(w.daily.weather_code[j]);
+        m.days.push({ date: w.daily.time[j], kind: di[1], label: di[0], max: w.daily.temperature_2m_max[j], min: w.daily.temperature_2m_min[j], pop: w.daily.precipitation_probability_max[j] });
+      }
+      return m;
+    });
+  }
+
+  /* --- Yr (MET Norway) --- */
+  function yrInfo(code) {
+    var c = String(code || "").replace(/_(day|night|polartwilight)$/, "");
+    var light = /^light/.test(c), heavy = /^heavy/.test(c), sh = /showers/.test(c);
+    var pick = function (l, n, h) { return light ? l : heavy ? h : n; };
+    if (/thunder/.test(c)) return ["storm", "Ukkosta"];
+    if (/sleet/.test(c)) return ["rain", sh ? pick("Heikkoja räntäkuuroja", "Räntäkuuroja", "Voimakkaita räntäkuuroja") : pick("Heikkoa räntäsadetta", "Räntäsadetta", "Voimakasta räntäsadetta")];
+    if (/snow/.test(c)) return ["snow", sh ? pick("Heikkoja lumikuuroja", "Lumikuuroja", "Voimakkaita lumikuuroja") : pick("Heikkoa lumisadetta", "Lumisadetta", "Runsasta lumisadetta")];
+    if (/rain/.test(c)) return ["rain", sh ? pick("Heikkoja sadekuuroja", "Sadekuuroja", "Voimakkaita sadekuuroja") : pick("Heikkoa vesisadetta", "Vesisadetta", "Rankkaa vesisadetta")];
+    if (c === "fog") return ["fog", "Sumua"];
+    if (c === "clearsky") return ["clear", "Selkeää"];
+    if (c === "fair") return ["clear", "Enimmäkseen selkeää"];
+    if (c === "partlycloudy") return ["partly", "Puolipilvistä"];
+    if (c === "cloudy") return ["cloud", "Pilvistä"];
+    return ["cloud", c || "Tuntematon"];
+  }
+  function fetchYr() {
+    var u = "https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=" + (+cfg.lat).toFixed(4) + "&lon=" + (+cfg.lon).toFixed(4);
+    return getJSON(u).then(function (r) { return r.json(); }).then(function (j) {
+      var ts = (j.properties && j.properties.timeseries) || [];
+      var pts = ts.map(function (x) {
+        var d = (x.data && x.data.instant && x.data.instant.details) || {};
+        var nx = x.data.next_1_hours || x.data.next_6_hours || x.data.next_12_hours || {};
+        var info = yrInfo(nx.summary && nx.summary.symbol_code);
+        var pr = nx.details && nx.details.probability_of_precipitation;
+        return { t: new Date(x.time), temp: d.air_temperature, kind: info[0], label: info[1], hum: d.relative_humidity, wind: d.wind_speed, gust: d.wind_speed_of_gust != null ? d.wind_speed_of_gust : null, dir: d.wind_from_direction, pop: pr != null ? pr : null };
+      });
+      return buildModel(pts);
+    });
+  }
+
+  /* --- Ilmatieteen laitos (avoin data, WFS) --- */
+  var FMI_SYMBOLS = {
+    1: ["clear", "Selkeää"], 2: ["partly", "Puolipilvistä"], 3: ["cloud", "Pilvistä"],
+    21: ["rain", "Heikkoja sadekuuroja"], 22: ["rain", "Sadekuuroja"], 23: ["rain", "Voimakkaita sadekuuroja"],
+    31: ["rain", "Heikkoa vesisadetta"], 32: ["rain", "Vesisadetta"], 33: ["rain", "Voimakasta vesisadetta"],
+    41: ["snow", "Heikkoja lumikuuroja"], 42: ["snow", "Lumikuuroja"], 43: ["snow", "Voimakkaita lumikuuroja"],
+    51: ["snow", "Heikkoa lumisadetta"], 52: ["snow", "Lumisadetta"], 53: ["snow", "Voimakasta lumisadetta"],
+    61: ["storm", "Ukkoskuuroja"], 62: ["storm", "Voimakkaita ukkoskuuroja"], 63: ["storm", "Ukkosta"], 64: ["storm", "Voimakasta ukkosta"],
+    71: ["rain", "Heikkoja räntäkuuroja"], 72: ["rain", "Räntäkuuroja"], 73: ["rain", "Voimakkaita räntäkuuroja"],
+    81: ["rain", "Heikkoa räntäsadetta"], 82: ["rain", "Räntäsadetta"], 83: ["rain", "Voimakasta räntäsadetta"],
+    91: ["fog", "Utua"], 92: ["fog", "Sumua"]
+  };
+  function fetchFmi() {
+    var start = new Date(); start.setMinutes(0, 0, 0);
+    var end = new Date(start.getTime() + 5.6 * 864e5);
+    var iso = function (d) { return d.toISOString().slice(0, 19) + "Z"; };
+    var u = "https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature" +
+      "&storedquery_id=fmi::forecast::edited::weather::scandinavia::point::simple" +
+      "&latlon=" + (+cfg.lat).toFixed(4) + "," + (+cfg.lon).toFixed(4) +
+      "&parameters=Temperature,WindSpeedMS,WindDirection,WindGust,Humidity,WeatherSymbol3,PoP&timestep=60" +
+      "&starttime=" + iso(start) + "&endtime=" + iso(end);
+    return getJSON(u).then(function (r) { return r.text(); }).then(function (txt) {
+      var doc = new DOMParser().parseFromString(txt, "text/xml");
+      if (doc.querySelector("parsererror")) throw new Error("virheellinen vastaus");
+      if (doc.getElementsByTagNameNS("*", "ExceptionReport").length) throw new Error("FMI hylkäsi kyselyn");
+      var by = {}, order = [];
+      Array.prototype.forEach.call(doc.getElementsByTagNameNS("*", "BsWfsElement"), function (el) {
+        var g = function (n) { var e = el.getElementsByTagNameNS("*", n)[0]; return e ? e.textContent.trim() : ""; };
+        var t = g("Time"), name = g("ParameterName"), v = parseFloat(g("ParameterValue"));
+        if (!t || !name) return;
+        if (!by[t]) { by[t] = {}; order.push(t); }
+        by[t][name] = isFinite(v) ? v : null;
+      });
+      var pts = order.map(function (t) {
+        var o = by[t], s = FMI_SYMBOLS[o.WeatherSymbol3] || ["cloud", "Pilvistä"];
+        return { t: new Date(t), temp: o.Temperature, kind: s[0], label: s[1], hum: o.Humidity, wind: o.WindSpeedMS, gust: o.WindGust, dir: o.WindDirection, pop: o.PoP };
+      });
+      return buildModel(pts);
+    });
+  }
+
+  function renderWeather(m) {
+    var c = m.cur;
+    var h = '<div class="wx-now">' +
+      '<div class="wx-icon">' + icon(c.kind, c.day) + '</div>' +
+      '<div><div class="wx-temp num">' + tFmt(c.temp) + '<small>°C</small></div>' +
+      '<div class="wx-desc">' + esc(c.label) + '</div>' +
+      '<div class="wx-sub num">Tuntuu kuin ' + tFmt(c.feels) + ' °C</div></div>' +
+      '<div class="wx-facts">';
+    if (c.wind != null) {
+      h += '<div class="fact"><span>Tuuli</span><b class="num">' + (c.dir != null ? windArrow(c.dir) + ' ' : '') + Math.round(c.wind) + ' m/s</b><div class="wx-sub">' +
+        (c.dir != null ? esc(dirName(c.dir)) : '') + (c.gust != null ? (c.dir != null ? ', ' : '') + 'puuskat ' + Math.round(c.gust) : '') + '</div></div>';
+    }
+    if (c.hum != null) h += '<div class="fact"><span>Kosteus</span><b class="num">' + Math.round(c.hum) + ' %</b></div>';
+    if (m.sun) h += '<div class="fact"><span>Aurinko</span><b class="num">' + m.sun.rise + '–' + m.sun.set + '</b></div>';
+    h += '</div></div>';
+    var hh = "";
+    m.hours.forEach(function (x) {
+      hh += '<div class="hour"><span class="t">' + x.t + '</span>' + icon(x.kind, x.day) +
+        '<span class="v num">' + tFmt(x.temp) + '°</span><span class="p num">' + (x.pop != null && x.pop >= 20 ? Math.round(x.pop) + ' %' : '') + '</span></div>';
+    });
+    h += '<div class="hours" aria-label="Tuntiennuste">' + hh + '</div>';
+    var dd = "";
+    m.days.forEach(function (x) {
+      var dt = new Date(x.date + "T12:00:00");
+      dd += '<div class="day"><span class="d">' + esc(new Intl.DateTimeFormat("fi-FI", { weekday: "short" }).format(dt)) + '</span>' + icon(x.kind, true) +
+        '<span class="r num">' + tFmt(x.max) + '° <i>/ ' + tFmt(x.min) + '°</i></span>' +
+        '<span class="p">' + esc(x.label) + (x.pop != null && x.pop >= 20 ? ', ' + Math.round(x.pop) + ' %' : '') + '</span></div>';
+    });
+    h += '<div class="days">' + dd + '</div>';
+    setBody("wx-body", h);
+  }
+  function drawWxChips() {
+    $("wx-chips").innerHTML = Object.keys(WX_SOURCES).map(function (k) {
+      return '<button class="chip" type="button" data-w="' + k + '" aria-pressed="' + (k === cfg.wxSource) + '">' + esc(WX_SOURCES[k]) + '</button>';
+    }).join("");
+  }
+  function fetchWx(src) { return src === "fmi" ? fetchFmi() : src === "yr" ? fetchYr() : fetchOM(); }
+  function loadWeather() {
+    $("wx-place").textContent = cfg.place;
+    drawWxChips();
+    var want = cfg.wxSource, when = "päivitetty " + hm(new Date());
+    return fetchWx(want).then(function (m) {
+      renderWeather(m); $("wx-upd").textContent = when + " · " + WX_SOURCES[want];
+    }).catch(function (e) {
+      if (want === "om") throw e;
+      return fetchWx("om").then(function (m) {
+        renderWeather(m);
+        $("wx-upd").textContent = when + " · " + WX_SOURCES[want] + " ei vastannut (" + e.message + "), näytetään Open-Meteo";
+      });
+    }).catch(function (e) {
+      setBody("wx-body", '<div class="state err">Säätä ei saatu haettua (' + esc(e.message) + '). Tarkista verkkoyhteys ja yritä uudelleen.</div>');
+    });
+  }
+
+  /* ---------- Pysäkki ---------- */
+  var stopData = null;
+  function dtq(query) {
+    return getJSON(DIGITRANSIT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "digitransit-subscription-key": cfg.key },
+      body: JSON.stringify({ query: query })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.errors && j.errors.length) throw new Error(j.errors[0].message || "kyselyvirhe");
+      return j.data;
+    });
+  }
+  function renderStop() {
+    if (!stopData) return;
+    var now = Date.now(), rows = "";
+    stopData.times.forEach(function (t) {
+      var ts = (t.serviceDay + t.realtimeDeparture) * 1000;
+      var diff = Math.ceil((ts - now) / 60000);
+      if (diff < -1) return;
+      var txt = diff <= 0 ? "nyt" : diff < 15 ? diff + " min" : hm(new Date(ts));
+      var sched = (!t.realtime && diff < 15 && diff > 0) ? '<span class="sched" title="Aikataulun mukaan">~</span>' : "";
+      var live = t.realtime ? '<span class="live" title="Reaaliaikainen"></span>' : "";
+      var href = /^[\w:.\-]+$/.test(t.routeId) ? REITTIOPAS + "/linjat/" + t.routeId : "";
+      var badge = href ? '<a class="line" href="' + esc(href) + '" target="_blank" rel="noopener" title="Näytä linja ' + esc(t.route) + ' kartalla">' + esc(t.route) + '</a>' : '<span class="line">' + esc(t.route) + '</span>';
+      rows += '<li class="dep">' + badge + '<span class="dest">' + esc(t.headsign) + '</span><span class="when num">' + live + sched + esc(txt) + '</span></li>';
+    });
+    var stopHref = /^[\w:.\-]+$/.test(cfg.stopId) ? REITTIOPAS + "/pysakit/" + cfg.stopId : REITTIOPAS;
+    setBody("stop-body", '<div class="stop-name">' + esc(stopData.name) + (stopData.code ? '<small>' + esc(stopData.code) + '</small>' : "") + '</div>' +
+      (rows ? '<ul class="deps">' + rows + '</ul>' : '<div class="state">Ei lähteviä vuoroja lähiaikoina.</div>') +
+      '<div class="map-links"><a href="' + esc(stopHref) + '" target="_blank" rel="noopener">Pysäkki kartalla</a><a href="' + REITTIOPAS + '" target="_blank" rel="noopener">Reittiopas</a><span class="hint">Napauta linjan numeroa nähdäksesi sen bussit kartalla.</span></div>');
+  }
+  function loadStop() {
+    if (!cfg.key || !cfg.stopId) {
+      setBody("stop-body", '<div class="setup"><b>Valitse pysäkki</b><br>Avaa Asetukset, lisää Digitransit-API-avain ja hae pysäkki nimellä. ' +
+        'Siihen asti: <a href="https://www.nysse.fi" target="_blank" rel="noopener">Nysse.fi</a>.</div>');
+      $("stop-upd").textContent = "";
+      return Promise.resolve();
+    }
+    var q = '{ stop(id: ' + JSON.stringify(cfg.stopId) + ') { name code stoptimesWithoutPatterns(numberOfDepartures: 10) { realtimeDeparture serviceDay realtime headsign trip { route { shortName gtfsId } } } } }';
+    return dtq(q).then(function (d) {
+      if (!d.stop) throw new Error("pysäkkiä ei löytynyt tunnuksella " + cfg.stopId);
+      stopData = {
+        name: d.stop.name, code: d.stop.code,
+        times: (d.stop.stoptimesWithoutPatterns || []).map(function (t) {
+          return { realtimeDeparture: t.realtimeDeparture, serviceDay: t.serviceDay, realtime: t.realtime, headsign: t.headsign || "", route: (t.trip && t.trip.route && t.trip.route.shortName) || "?", routeId: (t.trip && t.trip.route && t.trip.route.gtfsId) || "" };
+        })
+      };
+      renderStop(); stamp("stop-upd");
+    }).catch(function (e) {
+      stopData = null;
+      var m = /40[13]/.test(e.message) ? "API-avain ei kelpaa. Tarkista se asetuksista." : "Aikataulua ei saatu haettua (" + e.message + ").";
+      setBody("stop-body", '<div class="state err">' + esc(m) + '</div>');
+    });
+  }
+
+  /* ---------- Liikennetiedotteet ---------- */
+  var trItems = [], trFilter = "all";
+  function renderTraffic() {
+    var items = trItems.filter(function (x) { return trFilter === "all" || x.kind === trFilter; });
+    if (!items.length) { setBody("tr-body", '<div class="state">Ei tiedotteita valitulla alueella.</div>'); return; }
+    setBody("tr-body", '<ul class="list">' + items.slice(0, 40).map(function (x) {
+      return '<li class="item"><div class="ti"><span class="tag' + (x.kind === "work" ? ' work' : '') + '">' + (x.kind === "work" ? "Tietyö" : "Häiriö") + '</span>' + esc(x.title) + '</div>' +
+        (x.desc ? '<div class="de">' + esc(x.desc) + '</div>' : "") +
+        (x.time ? '<div class="when-small">' + esc(relTime(x.time)) + '</div>' : "") + '</li>';
+    }).join("") + '</ul>');
+  }
+  /* Suodatus perustuu tiedotteen viralliseen sijaintiin (alueet ja tieosoitteen kunta), ei vapaaseen tekstiin. */
+  function placeNames(p) {
+    var names = [];
+    (p.announcements || []).forEach(function (a) {
+      var ld = a.locationDetails || {};
+      ((ld.areaLocation && ld.areaLocation.areas) || []).forEach(function (z) { if (z && z.name) names.push(z.name); });
+      var ra = ld.roadAddressLocation || {};
+      [ra.primaryPoint, ra.secondaryPoint].forEach(function (pt) { if (pt && pt.municipality) names.push(pt.municipality); });
+    });
+    return names.map(function (n) { return n.trim().toLowerCase(); });
+  }
+  function matchesPlace(p, kws) {
+    var names = placeNames(p);
+    if (names.length) return names.some(function (n) { return kws.indexOf(n) >= 0; });
+    /* Jos sijaintitietoa ei ole, katsotaan vain otsikkoa ja sijaintikuvausta kokonaisina sanoina. */
+    var txt = (p.announcements || []).map(function (a) { return (a.title || "") + " " + ((a.location && a.location.description) || ""); }).join(" ").toLowerCase();
+    return kws.some(function (k) {
+      return new RegExp("(^|[^a-zåäö])" + k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-zåäö]|$)").test(txt);
+    });
+  }
+  function trFeatures(g) {
+    if (Array.isArray(g)) return g;
+    if (g && Array.isArray(g.features)) return g.features;
+    if (g && g.properties) return [g];
+    return [];
+  }
+  function loadTraffic() {
+    /* Digitraffic v1 poistui käytöstä 27.10.2026, joten käytössä on v2. */
+    var base = "https://tie.digitraffic.fi/api/traffic-message/v2/";
+    var kws = cfg.keywords.split(",").map(function (s) { return s.trim().toLowerCase(); }).filter(Boolean);
+    function one(path, kind) {
+      return getJSON(base + path).catch(function () { return getJSON(base + path + "?includeGeometry=false"); }).then(function (r) { return r.json(); }).then(function (g) {
+        return trFeatures(g).map(function (f) { f.__kind = kind; return f; });
+      });
+    }
+    return Promise.allSettled([one("traffic-announcements", "incident"), one("roadworks", "work")]).then(function (res) {
+      if (res[0].status === "rejected" && res[1].status === "rejected") throw res[0].reason;
+      var all = [];
+      res.forEach(function (x) { if (x.status === "fulfilled") all = all.concat(x.value); });
+      return { features: all, partial: res.some(function (x) { return x.status === "rejected"; }) };
+    }).then(function (g) {
+      var out = [];
+      g.features.forEach(function (f) {
+        var p = f.properties || {}, a = (p.announcements || [])[0] || {};
+        if (kws.length && !matchesPlace(p, kws)) return;
+        var feats = (a.features || []).map(function (z) { return z && z.name; }).filter(Boolean);
+        var areas = ((a.locationDetails && a.locationDetails.areaLocation && a.locationDetails.areaLocation.areas) || []).map(function (z) { return z && z.name; }).filter(Boolean);
+        var desc = [a.location && a.location.description, areas.slice(0, 3).join(", "), feats.join(", ")].filter(Boolean).join(" · ");
+        out.push({
+          kind: f.__kind,
+          title: a.title || "Liikennetiedote",
+          desc: desc,
+          time: p.releaseTime ? new Date(p.releaseTime) : null
+        });
+      });
+      out.sort(function (a, b) {
+        if (a.kind !== b.kind) return a.kind === "incident" ? -1 : 1;
+        return (b.time || 0) - (a.time || 0);
+      });
+      trItems = out; renderTraffic(); stamp("tr-upd");
+      if (g.partial) $("tr-body").insertAdjacentHTML("afterbegin", '<div class="state err">Osa tiedotteista puuttuu, koska toinen lähde ei vastannut.</div>');
+    }).catch(function (e) {
+      setBody("tr-body", '<div class="state err">Liikennetiedotteita ei saatu haettua (' + esc(e.message) + '). <a href="https://liikennetilanne.fintraffic.fi" target="_blank" rel="noopener">Avaa Liikennetilanne</a>.</div>');
+    });
+  }
+
+  /* ---------- Uutiset ---------- */
+  var newsCache = {};
+  function parseRss(txt) {
+    var doc = new DOMParser().parseFromString(txt, "text/xml");
+    if (doc.querySelector("parsererror")) throw new Error("virheellinen syöte");
+    return Array.prototype.slice.call(doc.querySelectorAll("item")).map(function (it) {
+      var g = function (n) { var e = it.querySelector(n); return e ? e.textContent.trim() : ""; };
+      return { title: g("title"), link: g("link"), time: g("pubDate") ? new Date(g("pubDate")) : null };
+    });
+  }
+  /* Yle ei salli suoria selainhakuja file://-sivulta (ei CORS-otsakkeita), joten luetaan syöte välipalvelun kautta. */
+  /* Ampparit ei tarjoa RSS-syötettä, joten otsikot luetaan sivun HTML:stä välipalvelun kautta. */
+  function parseAmpparit(html) {
+    var doc = new DOMParser().parseFromString(html, "text/html"), out = [], seen = {};
+    Array.prototype.forEach.call(doc.querySelectorAll("h1 a[href], h2 a[href], h3 a[href], h4 a[href], h5 a[href]"), function (a) {
+      var href = a.getAttribute("href") || "", title = a.textContent.replace(/\s+/g, " ").trim();
+      if (!/^https?:\/\//i.test(href) || /(^|\.)ampparit\.com/i.test(href.split("/")[2] || "") || title.length < 20 || seen[href]) return;
+      seen[href] = 1;
+      var host = (href.split("/")[2] || "").replace(/^www\./, "");
+      var box = a.closest("li, article, div"), t = box ? (box.textContent.match(/(?:^|\D)(\d{1,2}:\d{2})(?!\d)/) || ["", ""])[1] : "";
+      out.push({ title: title, link: href, time: null, meta: host + (t ? " · " + t : "") });
+    });
+    if (!out.length) throw new Error("otsikoita ei löytynyt");
+    return out.slice(0, 30);
+  }
+  function fetchAmpparit(src) {
+    var enc = encodeURIComponent(src.url);
+    function via(u) { return getJSON(u).then(function (r) { return r.text(); }).then(parseAmpparit); }
+    return via("https://api.allorigins.win/raw?url=" + enc).catch(function () { return via("https://corsproxy.io/?url=" + enc); });
+  }
+  function fetchNews(src) {
+    if (src.type === "ampparit") return fetchAmpparit(src);
+    var enc = encodeURIComponent(src.url);
+    function viaRss2Json() {
+      return getJSON("https://api.rss2json.com/v1/api.json?rss_url=" + enc).then(function (r) { return r.json(); }).then(function (j) {
+        if (j.status !== "ok" || !j.items) throw new Error("rss2json: " + (j.message || "ei vastausta"));
+        return j.items.map(function (i) { return { title: i.title, link: i.link, time: i.pubDate ? new Date(i.pubDate.replace(" ", "T") + "Z") : null }; });
+      });
+    }
+    function viaAllOrigins() {
+      return getJSON("https://api.allorigins.win/raw?url=" + enc).then(function (r) { return r.text(); }).then(parseRss);
+    }
+    function viaCorsProxy() {
+      return getJSON("https://corsproxy.io/?url=" + enc).then(function (r) { return r.text(); }).then(parseRss);
+    }
+    return viaRss2Json().catch(viaAllOrigins).catch(viaCorsProxy);
+  }
+  function renderNews() {
+    var items = newsCache[cfg.newsTab] || [];
+    if (!items.length) { setBody("nw-body", '<div class="state">Ei uutisia.</div>'); return; }
+    setBody("nw-body", '<ul class="list">' + items.slice(0, 15).map(function (x) {
+      var safe = /^https?:\/\//.test(x.link) ? x.link : "#";
+      return '<li class="item"><a href="' + esc(safe) + '" target="_blank" rel="noopener"><div class="ti">' + esc(x.title) + '</div>' +
+        (x.meta ? '<div class="when-small">' + esc(x.meta) + '</div>' : (x.time && !isNaN(x.time) ? '<div class="when-small">' + esc(relTime(x.time)) + '</div>' : "")) + '</a></li>';
+    }).join("") + '</ul>' + (cfg.newsTab === "tek" ? '<div class="hint">Otsikot koottu <a href="https://www.ampparit.com/it" target="_blank" rel="noopener">Ampparit.com/it</a>-sivulta.</div>' : ""));
+  }
+  function drawNewsChips() {
+    $("nw-chips").innerHTML = NEWS_SOURCES.map(function (s) {
+      return '<button class="chip" type="button" data-n="' + s.id + '" aria-pressed="' + (s.id === cfg.newsTab) + '">' + esc(s.name) + '</button>';
+    }).join("");
+  }
+  function loadNews(force) {
+    var src = NEWS_SOURCES.filter(function (s) { return s.id === cfg.newsTab; })[0] || NEWS_SOURCES[0];
+    if (newsCache[src.id] && !force) { renderNews(); return Promise.resolve(); }
+    return fetchNews(src).then(function (items) {
+      newsCache[src.id] = items; renderNews(); stamp("nw-upd");
+    }).catch(function (e) {
+      setBody("nw-body", '<div class="state err">Uutisia ei saatu haettua (' + esc(e.message) + '). <a href="https://yle.fi/uutiset" target="_blank" rel="noopener">Avaa Yle Uutiset</a>.</div>');
+    });
+  }
+
+  /* ---------- Linkit ---------- */
+  function renderLinks() {
+    var groups = {}, order = [];
+    cfg.links.split("\n").forEach(function (line) {
+      var p = line.split("|").map(function (s) { return s.trim(); });
+      if (p.length < 3 || !/^https?:\/\//i.test(p[2])) return;
+      if (!groups[p[0]]) { groups[p[0]] = []; order.push(p[0]); }
+      groups[p[0]].push({ n: p[1], u: p[2] });
+    });
+    $("links").innerHTML = order.map(function (g) {
+      return '<div class="lg"><h3>' + esc(g) + '</h3><ul>' + groups[g].map(function (l) {
+        return '<li><a href="' + esc(l.u) + '" target="_blank" rel="noopener">' + esc(l.n) + '</a></li>';
+      }).join("") + '</ul></div>';
+    }).join("") || '<div class="state">Ei linkkejä. Lisää niitä asetuksissa.</div>';
+  }
+
+  /* ---------- Asetukset ---------- */
+  var dlg = $("dlg");
+  function fillForm() {
+    $("s-place").value = cfg.place; $("s-lat").value = cfg.lat; $("s-lon").value = cfg.lon;
+    $("s-key").value = cfg.key; $("s-ndkey").value = cfg.ndKey; $("s-stopid").value = cfg.stopId; $("s-kw").value = cfg.keywords; $("s-links").value = cfg.links;
+    $("s-geo-msg").textContent = ""; $("s-stop-msg").textContent = ""; $("s-stopresults").innerHTML = "";
+  }
+  function num(v, d) { var n = parseFloat(String(v).replace(",", ".")); return isFinite(n) ? n : d; }
+  $("btn-settings").addEventListener("click", function () { fillForm(); dlg.showModal(); });
+  $("s-cancel").addEventListener("click", function () { dlg.close(); });
+  $("s-reset").addEventListener("click", function () {
+    var keep = { key: cfg.key, stopId: cfg.stopId, ndKey: cfg.ndKey };
+    cfg = Object.assign({}, DEFAULTS, keep, { newsTab: cfg.newsTab, layout: cfg.layout });
+    fillForm();
+  });
+  $("settings-form").addEventListener("submit", function () {
+    cfg.place = $("s-place").value.trim() || DEFAULTS.place;
+    cfg.lat = num($("s-lat").value, DEFAULTS.lat); cfg.lon = num($("s-lon").value, DEFAULTS.lon);
+    cfg.ndKey = $("s-ndkey").value.trim(); cfg.key = $("s-key").value.trim(); cfg.stopId = $("s-stopid").value.trim();
+    cfg.keywords = $("s-kw").value; cfg.links = $("s-links").value;
+    save(); renderLinks(); loadAll(true);
+  });
+  $("s-geo").addEventListener("click", function () {
+    var q = $("s-place").value.trim(); if (!q) return;
+    $("s-geo-msg").textContent = "Haetaan…";
+    getJSON("https://geocoding-api.open-meteo.com/v1/search?count=1&language=fi&country_code=FI&name=" + encodeURIComponent(q))
+      .then(function (r) { return r.json(); }).then(function (j) {
+        var r = j.results && j.results[0];
+        if (!r) { $("s-geo-msg").textContent = "Paikkaa ei löytynyt."; return; }
+        $("s-place").value = r.name; $("s-lat").value = r.latitude; $("s-lon").value = r.longitude;
+        $("s-geo-msg").textContent = "Löytyi: " + r.name + (r.admin1 ? ", " + r.admin1 : "");
+      }).catch(function (e) { $("s-geo-msg").textContent = "Haku epäonnistui (" + e.message + ")."; });
+  });
+  $("s-stopsearch").addEventListener("click", function () {
+    var q = $("s-stopq").value.trim(), key = $("s-key").value.trim();
+    if (!key) { $("s-stop-msg").textContent = "Lisää ensin API-avain."; return; }
+    if (!q) return;
+    $("s-stop-msg").textContent = "Haetaan…";
+    var saved = cfg.key; cfg.key = key;
+    dtq('{ stops(name: ' + JSON.stringify(q) + ') { gtfsId name code desc } }').then(function (d) {
+      var list = (d.stops || []).slice(0, 12);
+      $("s-stop-msg").textContent = list.length ? "Valitse pysäkki:" : "Pysäkkejä ei löytynyt.";
+      $("s-stopresults").innerHTML = list.map(function (s, i) {
+        return '<button type="button" data-i="' + i + '">' + esc(s.name) + (s.code ? " (" + esc(s.code) + ")" : "") + (s.desc ? " · " + esc(s.desc) : "") + ' · <span class="num">' + esc(s.gtfsId) + '</span></button>';
+      }).join("");
+      $("s-stopresults").onclick = function (ev) {
+        var b = ev.target.closest("button"); if (!b) return;
+        $("s-stopid").value = list[+b.getAttribute("data-i")].gtfsId;
+      };
+    }).catch(function (e) {
+      $("s-stop-msg").textContent = /40[13]/.test(e.message) ? "API-avain ei kelpaa." : "Haku epäonnistui (" + e.message + ").";
+    }).then(function () { cfg.key = saved; });
+  });
+
+  /* ---------- Nimipäivät (Helsingin yliopiston Almanakkatoimisto) ---------- */
+  var ND_CREDIT = "Calendar and name day data provided by the University of Helsinki Almanac Office.";
+  var ndDate = "";
+  function renderNameday(names, err) {
+    var el = $("nameday");
+    if (!cfg.ndKey) {
+      el.innerHTML = 'Nimipäivät: lisää <a href="#" id="nd-setup">avain asetuksissa</a>.';
+      var a = $("nd-setup"); if (a) a.onclick = function (e) { e.preventDefault(); $("btn-settings").click(); };
+      return;
+    }
+    if (err) { el.textContent = "Nimipäiviä ei saatu haettua (" + err + ")."; return; }
+    el.innerHTML = names.length ? 'Nimipäivää viettävät <b>' + esc(names.join(", ")) + '</b><small>' + esc(ND_CREDIT) + '</small>'
+      : 'Ei nimipäiväsankareita tänään.<small>' + esc(ND_CREDIT) + '</small>';
+  }
+  function dayName(x) {
+    if (!x) return "";
+    if (typeof x === "string") return x;
+    return x.name || x.name_fi || x.title || "";
+  }
+  function renderCal(cal) {
+    var el = $("caldays"), out = [];
+    if (cal) {
+      var h = dayName(cal.holiday), f = dayName(cal.flag_day), n = dayName(cal.notable_day);
+      if (h) out.push('<span class="cal-item"><span class="cal-tag hol">Juhlapyhä</span>' + esc(h) + '</span>');
+      if (f) out.push('<span class="cal-item"><span class="cal-tag flag">Liputus</span>' + esc(f) + '</span>');
+      if (n) out.push('<span class="cal-item"><span class="cal-tag">Merkkipäivä</span>' + esc(n) + '</span>');
+    }
+    el.innerHTML = out.join("");
+  }
+  function loadNameday() {
+    ndDate = lp(new Date()).date;
+    if (!cfg.ndKey) { renderNameday(); renderCal(null); return Promise.resolve(); }
+    var keyId = cfg.ndKey.slice(-6);
+    try {
+      var c = JSON.parse(localStorage.getItem("etusivu.nd") || "null");
+      if (c && c.date === ndDate && c.key === keyId && c.v === 2) { renderNameday(c.names); renderCal(c.cal); return Promise.resolve(); }
+    } catch (e) {}
+    var H = { "Authorization": "Bearer " + cfg.ndKey };
+    var namesP = getJSON("https://nimipaivarajapinta.fi/api/namedays/today", { headers: H }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.success === false) throw new Error(j.error || "avain ei kelpaa");
+      var list = (j.name_days_by_type && j.name_days_by_type.suomi) || (j.name_days || []).filter(function (x) { return x.type === "suomi"; });
+      return list.map(function (x) { return x.name; }).filter(Boolean);
+    });
+    var calP = getJSON("https://nimipaivarajapinta.fi/api/calendar/search", {
+      method: "POST", headers: { "Authorization": H.Authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: ndDate, to: ndDate, lang: "fi", holiday_list: "short" })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.success === false) throw new Error(j.error || "kalenteri ei vastaa");
+      return (j.results && j.results[0]) || {};
+    });
+    return Promise.allSettled([namesP, calP]).then(function (res) {
+      var nm = res[0], cl = res[1];
+      if (nm.status === "fulfilled") renderNameday(nm.value);
+      else renderNameday(null, /40[13]/.test(nm.reason.message) ? "avain ei kelpaa" : nm.reason.message);
+      renderCal(cl.status === "fulfilled" ? cl.value : null);
+      if (nm.status === "fulfilled" && cl.status === "fulfilled") {
+        try { localStorage.setItem("etusivu.nd", JSON.stringify({ v: 2, date: ndDate, key: keyId, names: nm.value, cal: cl.value })); } catch (e) {}
+      }
+    });
+  }
+
+  /* ---------- Revontulet (NOAA SWPC:n Kp-ennuste + Open-Meteon pilvisyys) ---------- */
+  var NOAA = "https://services.swpc.noaa.gov/products/";
+  function kpFmt(x) { return (Math.round(x * 10) / 10).toString().replace(".", ","); }
+  function needKp(lat) { return lat >= 68 ? 1 : lat >= 66 ? 2 : lat >= 64 ? 3 : lat >= 62 ? 4 : lat >= 60 ? 5 : 6; }
+  function tableRows(j) {
+    if (!Array.isArray(j) || !j.length) return [];
+    if (Array.isArray(j[0])) {
+      var head = j[0].map(function (h) { return String(h).toLowerCase(); });
+      return j.slice(1).map(function (r) { var o = {}; head.forEach(function (h, i) { o[h] = r[i]; }); return o; });
+    }
+    return j.map(function (r) { var o = {}; Object.keys(r).forEach(function (k) { o[k.toLowerCase()] = r[k]; }); return o; });
+  }
+  function noaaTime(s) { return new Date(String(s).replace(" ", "T").replace(/Z?$/, "Z")); }
+  function lastNum(rows, key) {
+    for (var i = rows.length - 1; i >= 0; i--) { var v = parseFloat(rows[i][key]); if (isFinite(v) && v > -9999) return v; }
+    return null;
+  }
+  function optionalJSON(url) { return getJSON(url).then(function (r) { return r.json(); }).catch(function () { return null; }); }
+  function nightWindow() {
+    var lat = +cfg.lat, lon = +cfg.lon, now = new Date();
+    var a = sunTimes(lat, lon, now), b = sunTimes(lat, lon, new Date(now.getTime() + 864e5));
+    if (!a || !b) return null;
+    var h = 36e5, from, to;
+    if (now.getTime() < a.rise.getTime() - h) { from = now; to = new Date(a.rise.getTime() - h); }
+    else { from = new Date(Math.max(now.getTime(), a.set.getTime() + h)); to = new Date(b.rise.getTime() - h); }
+    return to > from ? { from: from, to: to } : null;
+  }
+  function loadAurora() {
+    var win = nightWindow();
+    var kpP = getJSON(NOAA + "noaa-planetary-k-index-forecast.json").then(function (r) { return r.json(); });
+    var plP = optionalJSON(NOAA + "solar-wind/plasma-5-minute.json");
+    var mgP = optionalJSON(NOAA + "solar-wind/mag-5-minute.json");
+    var cloudP = win ? optionalJSON("https://api.open-meteo.com/v1/forecast?latitude=" + encodeURIComponent(cfg.lat) + "&longitude=" + encodeURIComponent(cfg.lon) + "&hourly=cloud_cover&forecast_days=3&timezone=Europe%2FHelsinki") : Promise.resolve(null);
+    return kpP.then(function (kj) {
+      var pts = tableRows(kj).map(function (r) {
+        return { t: noaaTime(r.time_tag), kp: parseFloat(r.kp), kind: String(r.observed || "").toLowerCase() };
+      }).filter(function (p) { return !isNaN(p.t) && isFinite(p.kp); }).sort(function (a, b) { return a.t - b.t; });
+      if (!pts.length) throw new Error("ennuste on tyhjä");
+      return Promise.all([plP, mgP, cloudP]).then(function (x) { renderAurora(pts, x[0], x[1], x[2], win); });
+    }).catch(function (e) {
+      setBody("au-body", '<div class="state err">Revontuliennustetta ei saatu haettua (' + esc(e.message) + '). <a href="https://rwc-finland.fmi.fi" target="_blank" rel="noopener">Avaa FMI:n Revontulet nyt</a>.</div>');
+    });
+  }
+  function renderAurora(pts, plasma, mag, cloud, win) {
+    var now = Date.now(), need = needKp(+cfg.lat);
+    var past = pts.filter(function (p) { return p.kind !== "predicted" && p.t.getTime() <= now + 36e5; });
+    var cur = past.length ? past[past.length - 1] : pts[0];
+    var shown = pts.filter(function (p) { return p.t.getTime() >= now - 3 * 36e5 && p.t.getTime() <= now + 72 * 36e5; });
+    var inWin = win ? pts.filter(function (p) { return p.t.getTime() + 108e5 > win.from.getTime() && p.t.getTime() < win.to.getTime(); }) : [];
+    var maxKp = inWin.length ? Math.max.apply(null, inWin.map(function (p) { return p.kp; })) : null;
+    var verdict, tone;
+    if (maxKp == null) { verdict = "Ei pimeää yötä lähiaikoina"; tone = ""; }
+    else if (maxKp >= need + 1) { verdict = "Hyvät mahdollisuudet"; tone = "good"; }
+    else if (maxKp >= need) { verdict = "Mahdollista"; tone = "ok"; }
+    else if (maxKp >= need - 1) { verdict = "Mahdollista pohjoisella horisontilla"; tone = "low"; }
+    else { verdict = "Epätodennäköistä"; tone = ""; }
+    var h = '<div class="au-head"><div><div class="au-kp num">' + kpFmt(cur.kp) + '<small> Kp</small></div><div class="wx-sub">' + (cur.kind === "predicted" ? "ennuste" : "nyt") + '</div></div>' +
+      '<div class="au-verdict"><span class="au-chip ' + tone + '">' + esc(verdict) + '</span>' +
+      '<div class="wx-sub">' + (maxKp != null ? 'Tulevan yön korkein Kp ' + kpFmt(maxKp) + '. ' : '') + 'Sijainnillasi tarvitaan noin Kp ' + need + '.</div></div></div>';
+    var facts = "";
+    var spd = plasma ? lastNum(tableRows(plasma), "speed") : null, bz = mag ? lastNum(tableRows(mag), "bz_gsm") : null;
+    if (spd != null) facts += '<div class="fact"><span>Auringontuuli</span><b class="num">' + Math.round(spd) + ' km/s</b></div>';
+    if (bz != null) facts += '<div class="fact"><span>Bz</span><b class="num">' + (bz < 0 ? "−" : "") + Math.abs(Math.round(bz * 10) / 10).toString().replace(".", ",") + ' nT</b><div class="wx-sub">' + (bz < -2 ? "etelään, suotuisa" : "ei suotuisa") + '</div></div>';
+    if (cloud && cloud.hourly && win) {
+      var wf = lp(win.from), wt = lp(win.to), a = wf.date + "T" + wf.hm, b = wt.date + "T" + wt.hm, vals = [], best = null;
+      cloud.hourly.time.forEach(function (t, i) {
+        if (t >= a.slice(0, 13) + ":00" && t <= b && cloud.hourly.cloud_cover[i] != null) {
+          var v = cloud.hourly.cloud_cover[i]; vals.push(v);
+          if (!best || v < best.v) best = { v: v, t: t.slice(11, 16) };
+        }
+      });
+      if (vals.length) {
+        var avg = Math.round(vals.reduce(function (s, v) { return s + v; }, 0) / vals.length);
+        facts += '<div class="fact"><span>Pilvisyys yöllä</span><b class="num">' + avg + ' %</b><div class="wx-sub">selkeintä klo ' + best.t + ' (' + Math.round(best.v) + ' %)</div></div>';
+      }
+    }
+    if (facts) h += '<div class="au-facts">' + facts + '</div>';
+    /* Kp-pylväät: 3 vuorokautta */
+    var W = 480, H = 120, L = 22, T = 8, B = 20, n = shown.length || 1, bw = (W - L) / n;
+    var y = function (k) { return T + (H - T - B) * (1 - Math.min(k, 9) / 9); };
+    var svg = '<svg class="au-chart" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Kp-indeksin ennuste kolmelle vuorokaudelle">';
+    [0, 3, 6, 9].forEach(function (g) { svg += '<line class="au-grid" x1="' + L + '" x2="' + W + '" y1="' + y(g) + '" y2="' + y(g) + '"/><text class="au-txt" x="0" y="' + (y(g) + 3) + '">' + g + '</text>'; });
+    var prevDay = "";
+    shown.forEach(function (p, i) {
+      var hit = p.kp >= need, x = L + i * bw, top = y(p.kp);
+      svg += '<rect class="au-bar' + (hit ? ' hit' : '') + (p.kind === "predicted" ? ' pred' : '') + '" x="' + (x + 1) + '" y="' + top + '" width="' + Math.max(1, bw - 2) + '" height="' + Math.max(1, y(0) - top) + '"><title>' + esc(lp(p.t).date.slice(5).replace("-", ".") + ". " + lp(p.t).hm + " · Kp " + kpFmt(p.kp)) + '</title></rect>';
+      var dKey = lp(p.t).date;
+      if (dKey !== prevDay) {
+        prevDay = dKey;
+        var dl = new Intl.DateTimeFormat("fi-FI", { weekday: "short", timeZone: "Europe/Helsinki" }).format(p.t);
+        svg += '<text class="au-txt" x="' + (x + 1) + '" y="' + (H - 5) + '">' + esc(dl) + '</text>';
+      }
+    });
+    if (need <= 9) svg += '<line class="au-need" x1="' + L + '" x2="' + W + '" y1="' + y(need) + '" y2="' + y(need) + '"/>';
+    svg += '</svg>';
+    h += svg + '<div class="au-legend"><span><i class="sw hit"></i>riittää sijainnillesi</span><span><i class="sw"></i>alle</span><span><i class="sw pred"></i>ennuste</span></div>';
+    h += '<div class="map-links"><a href="https://rwc-finland.fmi.fi" target="_blank" rel="noopener">Revontulet nyt (FMI)</a><a href="https://www.swpc.noaa.gov/products/aurora-30-minute-forecast" target="_blank" rel="noopener">NOAA:n revontulikartta</a><span class="hint">Suuntaa-antava. Tiedot: NOAA SWPC, pilvisyys Open-Meteo. Kp 5 tai yli tarkoittaa magneettista myrskyä.</span></div>';
+    setBody("au-body", h);
+    $("au-upd").textContent = "päivitetty " + hm(new Date());
+  }
+
+  /* ---------- Muokattava asettelu ---------- */
+  var editing = false;
+  function applyLayout() {
+    var grid = document.querySelector("main.grid");
+    cfg.layout.forEach(function (it) {
+      var el = $("p-" + it.id);
+      grid.appendChild(el);
+      el.style.setProperty("--span", it.span);
+      el.classList.toggle("is-hidden", it.hidden);
+      el.classList.toggle("collapsed", !!it.collapsed);
+      el.classList.toggle("big", !!it.big);
+      var cb = el.querySelector('[data-pc="collapse"]'), bb = el.querySelector('[data-pc="big"]');
+      if (cb) { cb.textContent = it.collapsed ? "+" : "–"; cb.title = it.collapsed ? "Laajenna ruutu" : "Pienennä ruutu"; cb.setAttribute("aria-label", cb.title); cb.setAttribute("aria-expanded", !it.collapsed); }
+      if (bb) { bb.textContent = it.big ? "⤡" : "⤢"; bb.title = it.big ? "Palauta ruudun koko" : "Suurenna ruutu"; bb.setAttribute("aria-label", bb.title); bb.setAttribute("aria-pressed", !!it.big); }
+      var hb = el.querySelector('[data-act="hide"]');
+      if (hb) hb.textContent = it.hidden ? "Näytä" : "Piilota";
+    });
+  }
+  function buildHeaderControls() {
+    PANEL_IDS.forEach(function (id) {
+      var ph = $("p-" + id).querySelector(".ph");
+      if (!ph || ph.querySelector(".ph-ctl")) return;
+      var c = document.createElement("span");
+      c.className = "ph-ctl";
+      c.innerHTML = '<button type="button" data-pc="collapse"></button><button type="button" data-pc="big"></button>';
+      ph.appendChild(c);
+    });
+  }
+  function buildEditBars() {
+    PANEL_IDS.forEach(function (id) {
+      var el = $("p-" + id);
+      var bar = document.createElement("div");
+      bar.className = "edit-bar";
+      bar.innerHTML = '<span class="grip" aria-hidden="true">⠿ ' + esc(PANEL_NAMES[id]) + ' · vedä siirtääksesi</span>' +
+        '<button class="btn" type="button" data-act="up" aria-label="Siirrä aiemmaksi">↑</button>' +
+        '<button class="btn" type="button" data-act="down" aria-label="Siirrä myöhemmäksi">↓</button>' +
+        '<button class="btn" type="button" data-act="narrow">◂ Kapeampi</button>' +
+        '<button class="btn" type="button" data-act="wide">Leveämpi ▸</button>' +
+        '<button class="btn" type="button" data-act="hide">Piilota</button>';
+      el.insertBefore(bar, el.firstChild);
+    });
+  }
+  function setEditing(on) {
+    editing = on;
+    document.body.classList.toggle("editing", on);
+    $("btn-edit").textContent = on ? "Valmis" : "Muokkaa asettelua";
+    $("btn-edit").setAttribute("aria-pressed", on);
+    PANEL_IDS.forEach(function (id) { $("p-" + id).draggable = on; });
+  }
+  function layoutIndex(id) { return cfg.layout.findIndex(function (x) { return x.id === id; }); }
+  function moveItem(from, to) {
+    if (from === to || from < 0 || to < 0) return;
+    var it = cfg.layout.splice(from, 1)[0];
+    cfg.layout.splice(to, 0, it);
+    save(); applyLayout();
+  }
+  $("btn-edit").addEventListener("click", function () { setEditing(!editing); });
+  $("btn-layout-reset").addEventListener("click", function () { cfg.layout = normLayout(null); save(); applyLayout(); });
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest(".edit-bar [data-act]");
+    if (!b) return;
+    var id = b.closest(".panel").id.slice(2), i = layoutIndex(id), it = cfg.layout[i], act = b.getAttribute("data-act");
+    if (act === "up") moveItem(i, i - 1);
+    else if (act === "down") moveItem(i, i + 1);
+    else if (act === "narrow" || act === "wide") {
+      var k = SPANS.indexOf(it.span) + (act === "wide" ? 1 : -1);
+      if (k >= 0 && k < SPANS.length) { it.span = SPANS[k]; save(); applyLayout(); }
+    } else if (act === "hide") { it.hidden = !it.hidden; save(); applyLayout(); }
+  });
+  (function dnd() {
+    var grid = document.querySelector("main.grid"), dragId = null;
+    var panelOf = function (t) { return t && t.closest ? t.closest(".panel") : null; };
+    grid.addEventListener("dragstart", function (e) {
+      var p = panelOf(e.target);
+      if (!editing || !p || e.target !== p) { e.preventDefault(); return; }
+      dragId = p.id.slice(2);
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", dragId); } catch (x) {}
+      p.classList.add("dragging");
+    });
+    grid.addEventListener("dragover", function (e) {
+      var p = panelOf(e.target);
+      if (!editing || !dragId || !p) return;
+      e.preventDefault();
+      Array.prototype.forEach.call(grid.children, function (c) { c.classList.toggle("drop-target", c === p && p.id.slice(2) !== dragId); });
+    });
+    grid.addEventListener("drop", function (e) {
+      var p = panelOf(e.target);
+      if (!editing || !dragId || !p) return;
+      e.preventDefault();
+      moveItem(layoutIndex(dragId), layoutIndex(p.id.slice(2)));
+    });
+    grid.addEventListener("dragend", function () {
+      dragId = null;
+      Array.prototype.forEach.call(grid.children, function (c) { c.classList.remove("dragging", "drop-target"); });
+    });
+  })();
+  document.addEventListener("click", function (ev) {
+    var b = ev.target.closest(".ph-ctl [data-pc]");
+    if (!b) return;
+    var it = cfg.layout[layoutIndex(b.closest(".panel").id.slice(2))];
+    if (b.getAttribute("data-pc") === "collapse") it.collapsed = !it.collapsed;
+    else { it.big = !it.big; if (it.big) it.collapsed = false; }
+    save(); applyLayout();
+  });
+  buildHeaderControls();
+  buildEditBars();
+  applyLayout();
+
+  /* ---------- Tapahtumat ja ajastus ---------- */
+  var loaders = { aurora: loadAurora, weather: loadWeather, stop: loadStop, traffic: loadTraffic, news: function () { return loadNews(true); } };
+  document.addEventListener("click", function (ev) {
+    var r = ev.target.closest("[data-refresh]");
+    if (r) { loaders[r.getAttribute("data-refresh")](); return; }
+    var w = ev.target.closest("#wx-chips .chip");
+    if (w) { cfg.wxSource = w.getAttribute("data-w"); save(); loadWeather(); return; }
+    var f = ev.target.closest("#tr-chips .chip");
+    if (f) {
+      trFilter = f.getAttribute("data-f");
+      Array.prototype.forEach.call($("tr-chips").children, function (c) { c.setAttribute("aria-pressed", c === f); });
+      renderTraffic(); return;
+    }
+    var n = ev.target.closest("#nw-chips .chip");
+    if (n) { cfg.newsTab = n.getAttribute("data-n"); save(); drawNewsChips(); loadNews(false); }
+  });
+  $("btn-refresh").addEventListener("click", function () { loadAll(true); });
+
+  function loadAll() { loadNameday(); loadAurora(); loadWeather(); loadStop(); loadTraffic(); loadNews(true); }
+
+  setTimeout(function () { document.body.classList.remove("intro"); }, 800);
+  tick(); setInterval(tick, 10000);
+  renderLinks(); drawNewsChips(); loadAll();
+  setInterval(loadWeather, 15 * 60000);
+  setInterval(loadAurora, 15 * 60000);
+  setInterval(loadTraffic, 5 * 60000);
+  setInterval(function () { loadNews(true); }, 10 * 60000);
+  setInterval(function () { if (cfg.key && cfg.stopId) loadStop(); }, 60000);
+  setInterval(renderStop, 15000);
+})();
+</script>
+</body>
+</html>
